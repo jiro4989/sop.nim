@@ -31,20 +31,32 @@ type
     userName: string
     passwd: string
     uid: string
+    gid: string
     loginShell: string
   
   Group = object
     groupName: string
 
-proc fetchPasswd() =
-  let f = passwdFile.open FileMode.fmRead
+proc openReadLines(filePath: string): seq[string] =
+  let f = filePath.open FileMode.fmRead
   defer: f.close
-  var 
-    line: string
-    lines: seq[string]
+  var line: string
   while f.readLine line:
-    lines.add line
-  echo lines.mapIt(string, it.split ":").map(proc (x: openArray[string]): Passwd = Passwd(userName: "1"))
+    result.add line
+
+proc fetchTable(filePath: string, sep: string): seq[seq[string]] =
+  result = filePath.openReadLines.mapIt(seq[string], it.split sep)
+
+proc fetchPasswd(): seq[Passwd] =
+  for arr in passwdFile.fetchTable(":"):
+    result.add Passwd(
+        userName: arr[0],
+        uid: arr[2],
+        gid: arr[3])
+
+proc fetchGroup(): seq[Group] =
+  for arr in groupFile.fetchTable(":"):
+    result.add Group(groupName: arr[0])
 
 proc backupFile(srcFile: string, fmtStr: string = "yyyy-MM-dd\'_\'HHmmss") =
   ## backupFile is copy file as backup
